@@ -1,0 +1,53 @@
+name: 📖 Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.md'
+      - '**.rst'
+      - 'docs/**'
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+        
+    - name: Install documentation dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sphinx sphinx-rtd-theme
+        pip install -r requirements.txt
+        
+    - name: Check Markdown links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        
+    - name: Lint Markdown files
+      uses: articulate/actions-markdownlint@v1
+      with:
+        config: .markdownlint.json
+        files: '**/*.md'
+        ignore: 'node_modules'
+        
+    - name: Build documentation
+      run: |
+        # Add documentation build commands here
+        # sphinx-build -b html docs docs/_build/html
+        echo "Documentation build placeholder"
+        
+    - name: Check documentation coverage
+      run: |
+        # Add docstring coverage check
+        pip install docstr-coverage
+        docstr-coverage . --badge=docs/docstring-coverage.svg

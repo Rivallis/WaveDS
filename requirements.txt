@@ -1,0 +1,73 @@
+# TTT-MAE: Test-Time Training with Masked Autoencoders for Ultrasound Image Analysis
+# Requirements file for the refactored TTT-MAE codebase
+# Generated on 2025-09-21 for Python 3.9.21
+
+# Core Deep Learning Framework
+torch>=2.0.0,<3.0.0
+torchvision>=0.15.0
+tensorboard>=2.8.0
+
+# Computer Vision and Image Processing
+timm>=0.6.0
+Pillow>=9.0.0
+
+# Scientific Computing
+numpy>=1.21.0,<2.0.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+
+# Data Visualization
+matplotlib>=3.5.0
+
+# Data Processing and I/O
+h5py>=3.7.0  # For HDF5 file format support
+
+# Development and Testing (Optional)
+pytest>=7.0.0
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# Type Checking (Optional for development)
+mypy>=0.950
+
+# Additional utilities that may be needed
+tqdm>=4.60.0  # Progress bars
+pathlib  # Path handling (built-in for Python 3.4+)
+
+# Note: The following are built-in Python modules and don't need installation:
+# - argparse
+# - datetime  
+# - json
+# - logging
+# - math
+# - os
+# - sys
+# - time
+# - glob
+# - copy
+# - typing
+
+# Platform-specific optimizations (optional)
+# Uncomment based on your system:
+# torch-audio  # For audio processing if needed
+# einops  # For tensor operations (if used in timm models)
+
+# For GPU acceleration (choose based on your system):
+# CUDA 11.8+ (for NVIDIA GPUs)
+# torch[cuda]
+# 
+# MPS (for Apple Silicon Macs) - included in recent PyTorch versions
+# 
+# ROCm (for AMD GPUs)
+# torch[rocm]
+
+# Development environment recommendations:
+# - Use Python 3.9+ for best compatibility
+# - Consider using conda or virtual environments
+# - For Apple Silicon Macs, ensure MPS support is enabled in PyTorch
+
+# Installation command:
+# pip install -r requirements.txt
+#
+# Or for conda users:
+# conda install --file requirements.txt -c pytorch -c conda-forge
