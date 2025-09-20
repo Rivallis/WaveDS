@@ -1,4 +1,4 @@
-# TTT-MAE Requirements Generation Summary
+# Seq-TTT-MAE Requirements Generation Summary
 
 ## 📦 Generated Files
 
