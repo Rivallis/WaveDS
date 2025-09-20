@@ -196,29 +196,22 @@ Output: Adapted model parameters θ*
 
 ## 📄 License
 
-This project is released under the [MIT License](LICENSE), making it freely available for research and commercial use.
+This project is released under the [Attribution-NonCommercial 4.0 International] license, making it available for research use.
 
-## 🤝 Contributing
+## 🤝 Future topics
 
 If you want to contribute to this project, please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Areas for Contribution
+### Areas for Future extensions
 - Extended domain shift scenarios
 - Additional TTT methods comparison  
 - Improved visualization tools
 - Performance optimizations
 - Documentation improvements
 
-## 📞 Contact
-
-- **Authors**: Jiaxing Ye, Takumi Kobayashi
-- **Affiliation**: National Institute of Advanced Industrial Science and Technology (AIST)
-- **Issues**: Please open an issue for questions or bug reports
-- **Collaboration**: Contact through GitHub for research collaboration opportunities
-
 ## 🙏 Acknowledgments
 
+- Ultrasonic wavefield imaging source dataset contributors [TBA]
 - ImageNet pre-trained MAE models from Facebook Research
-- Ultrasonic wavefield imaging source dataset contributors
 - PyTorch and timm library maintainers
 - Open-source community for development tools and frameworks
