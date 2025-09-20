@@ -1,6 +1,6 @@
-# Contributing to TTT-MAE
+# Contributing to Seq-TTT-MAE for Ultrasonice Wavefield Analysis
 
-Thank you for your interest in contributing to TTT-MAE! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to Seq-TTT-MAE! This document provides guidelines for contributing to the project.
 
 ## 🚀 Getting Started
 
