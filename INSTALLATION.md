@@ -1,6 +1,6 @@
-# TTT-MAE Installation Guide
+# Seq-TTT-MAE Installation Guide
 
-This guide provides comprehensive instructions for setting up the TTT-MAE (Test-Time Training with Masked Autoencoders) environment.
+This guide provides comprehensive instructions for setting up the Seq-TTT-MAE (Sequential Test-Time Training with Masked Autoencoders for Ultrasonic Wavefields) environment.
 
 ## Quick Start
 
