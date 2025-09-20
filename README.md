@@ -1,7 +1,5 @@
 
-# TTT-MAE for Ultrasonic Wavefield Analysis
-
-**Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training**
+# Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org/)
