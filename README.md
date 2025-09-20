@@ -207,19 +207,18 @@ Output: Adapted model parameters θ*
 
 *[Usage examples and guidelines will be provided with the dataset release]*
 
-## 🏆 Citation
+# ## 🏆 Citation
 
-If you use this work in your research, please cite our paper:
+#  If you use this work in your research, please cite our paper:
 
-```bibtex
-@inproceedings{ye2026ttt,
+#  ```bibtex
+# @inproceedings{ye2026ttt,
   title={Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training},
   author={Ye, Jiaxing and Kobayashi, Takumi},
   booktitle={IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
   year={2026},
   organization={IEEE}
-}
-```
+# } 
 
 ## 📄 License
 
