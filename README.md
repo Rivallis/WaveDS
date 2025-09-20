@@ -1,12 +1,47 @@
 
-# WaveDS: Ultrasonic Wavefield Domain Shift Dataset
+# TTT-MAE for Ultrasonic Wavefield Analysis
 
-WaveDS is a public dataset specifically designed for investigating domain shift in physics-based measurement data, with a focus on ultrasonic wavefield imaging. This dataset addresses the critical challenge of model robustness when deploying machine learning systems in real-world scenarios where the data distribution differs from the training environment.
-# WaveDS
-It is an open dataset dedicated to domain shift investigation for ultrasonic wavefield imaging data under various inspection scenarios 
+**Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training**
 
-# Description
-While domain shift has been extensively studied in computer vision (CV) using benchmark datasets like ImageNet-C and CIFAR10-C, its definition and systematic study in physics-based measurement data remain limited. To address this gap, we developed a dedicated dataset for investigating domain shift in ultrasonic wavefield imaging. Mock specimens with artificially introduced defects were specifically fabricated to create controlled domain shifts in the data. Key measurement factors were systematically varied, including specimen geometry (ranging from flat plates to pipes), defect size, and transducer placement. This dataset supports the quantitative evaluation of model robustness and baseline performance when deployed under domain shift conditions. Additionally, it enables a thorough assessment of the effectiveness of the proposed post-deployment learning scheme in addressing domain shift challenges.
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Paper](https://img.shields.io/badge/paper-ICASSP%202026-red.svg)](#citation)
+
+This repository contains the official implementation of **Test-Time Training with Masked Autoencoders (TTT-MAE)** for ultrasonic wavefield pattern analysis. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
+
+## 🎯 Overview
+
+Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
+- **Specimen structures** (flat plates vs. pipes)
+- **Transducer positions** (top, side, left/right placement)  
+- **Defect conditions** (size, type, location)
+- **Measurement device specifications**
+
+Our **Sequential TTT-MAE** approach enables progressive feature adaptation during inference, achieving significant performance improvements:
+
+| Domain Shift | Deployed Model | **Seq-TTT-MAE (Ours)** | Improvement |
+|--------------|----------------|------------------------|-------------|
+| Type-A       | 54.45%         | **87.50%**             | +33.05%     |
+| Type-B       | 66.46%         | **81.15%**             | +14.69%     |
+| Type-C       | 56.09%         | **76.77%**             | +20.68%     |
+
+## 🚀 Key Features
+
+### ✨ **Sequential Test-Time Training**
+- Exploits temporal structure in ultrasonic wavefield snapshots
+- Progressive adaptation through mini-batch processing
+- Self-supervised learning with Masked Autoencoder (MAE)
+
+### 📊 **Benchmarking Dataset**  
+- Real ultrasonic wavefield images with systematic domain shifts
+- Multiple specimen geometries and transducer configurations
+- Controlled defect conditions for reproducible evaluation
+
+### 🔬 **Physics-Aware Adaptation**
+- Designed specifically for ultrasonic wavefield pattern analysis
+- Maintains temporal correlations in sequential measurements
+- Addresses unique challenges in physics-based signal processing
 
 ## Overview
 
@@ -25,58 +60,192 @@ The dataset consists of ultrasonic wavefield imaging data collected from mock sp
 - Development and validation of domain adaptation techniques
 - Assessment of post-deployment learning strategies
 
-## Key Features
+## 📦 Installation
 
-- **Controlled Domain Shifts**: Systematic variation of key parameters affecting ultrasonic measurements
-- **Physics-Based Data**: Real ultrasonic wavefield measurements maintaining physical constraints
-- **Artificial Defects**: Precisely controlled defect characteristics for reproducible experiments
-- **Multiple Scenarios**: Various inspection configurations to simulate real-world deployment variations
-- **Quantitative Evaluation**: Enables rigorous assessment of domain adaptation methods
+### Prerequisites
+- Python 3.9+
+- PyTorch 2.0+
+- CUDA-capable GPU (recommended)
 
-## Applications
+### Quick Start
 
-This dataset is valuable for researchers and practitioners working on:
+```bash
+# Clone the repository
+git clone https://github.com/Rivallis/WaveDS.git
+cd WaveDS
 
-- Domain adaptation in non-destructive testing
-- Robust machine learning for physics-based measurements
-- Transfer learning in ultrasonic imaging
-- Post-deployment model adaptation
-- Uncertainty quantification in measurement systems
+# Install dependencies
+pip install -r requirements.txt
 
-## Data Structure
+# Download large files (model and data)
+# See LARGE_FILES.md for download instructions
 
-*[Data structure documentation will be added as the dataset is developed]*
+# Verify installation
+python test_verification.py
+```
 
-## Usage
+### Alternative Installation Methods
+
+**Conda Environment:**
+```bash
+conda env create -f environment.yml
+conda activate ttt-mae
+```
+
+**Minimal Installation:**
+```bash
+pip install -r requirements-minimal.txt
+```
+
+## 🚀 Usage
+
+### Basic Example
+
+```python
+import torch
+from TTT_main_MAE import create_model, run_sequential_ttt
+
+# Load pre-trained model
+model = create_model('mae_vit_base_patch16', pretrained=True)
+
+# Load your ultrasonic wavefield data
+# wavefield_sequence: Sequential snapshots from ultrasonic inspection
+# labels: Ground truth defect/non-defect labels
+
+# Apply Sequential TTT-MAE
+adapted_model, results = run_sequential_ttt(
+    model=model,
+    test_data=wavefield_sequence,
+    batch_size=32,
+    adaptation_steps=32,
+    learning_rate=1e-3
+)
+
+# Make predictions with adapted model
+predictions = adapted_model(new_wavefield_data)
+```
+
+### Advanced Usage
+
+**Custom Domain Shift Scenarios:**
+```python
+from engine_TTT_wavefield_LN_MAE_vis import TTTEngine
+
+# Initialize TTT engine
+ttt_engine = TTTEngine(
+    model=model,
+    auxiliary_task='mae',
+    mask_ratio=0.75,
+    temporal_grouping=True
+)
+
+# Adapt to specific domain shift
+ttt_engine.adapt_to_domain(
+    source_data=training_data,
+    target_data=test_data,
+    domain_type='transducer_position'  # Type-A, Type-B, or Type-C
+)
+```
+
+## 📊 Experimental Results
+
+### Domain Shift Performance
+
+| Method | Type-A (Acc.) | Type-B (Acc.) | Type-C (Acc.) | Avg. Improvement |
+|--------|---------------|---------------|---------------|------------------|
+| Deployed Model | 54.45% | 66.46% | 56.09% | Baseline |
+| LayerNorm Adaptation | 61.35% | 62.40% | 59.38% | +2.76% |
+| TTT-MAE | 69.90% | 63.33% | 61.82% | +6.09% |
+| **Seq-TTT-MAE (Ours)** | **87.50%** | **81.15%** | **76.77%** | **+22.81%** |
+
+### Key Findings
+
+1. **Temporal Structure Matters**: Sequential processing of wavefield snapshots significantly improves adaptation
+2. **Hyperparameter Sensitivity**: Optimal performance at batch size 32 with 32 adaptation iterations  
+3. **Physics-Aware Design**: Custom adaptation for ultrasonic data outperforms general CV methods
+
+## 🔬 Technical Details
+
+### Architecture
+
+- **Backbone**: ViT-Base with Masked Autoencoder (MAE)
+- **Pre-training**: ImageNet pre-trained ViT-MAE
+- **Fine-tuning**: Source dataset (aluminum plate specimens)
+- **Adaptation**: Sequential TTT with temporal batching
+
+### Algorithm Overview
+
+```
+Input: Sequential wavefield snapshots X_T = {x_t}_{t=1}^T
+Output: Adapted model parameters θ*
+
+1. Group snapshots into temporal mini-batches B_1, ..., B_{T_B}
+2. For each mini-batch B_t:
+   a. Apply MAE auxiliary task with masking
+   b. Update encoder parameters θ_{(t)}
+   c. Maintain temporal correlations
+3. Use adapted model for classification
+```
+
+## 📈 Dataset Specifications
+
+### Source Dataset (Training)
+- **Specimen**: Aluminum plates  
+- **Images**: 7,004 samples (224×224×3)
+- **Labels**: Binary (defect/non-defect)
+
+### Target Dataset (Testing)  
+- **Specimen**: Aluminum pipes
+- **Images**: 4,008 samples (122×301×3)
+- **Domain Shifts**: 3 types based on transducer position
+
+| Domain Type | Transducer Position | Specimens | Samples |
+|-------------|-------------------|-----------|---------|
+| Type-A | Top (middle) | 6 | 1,002 |
+| Type-B | Side | 6 | 1,002 |  
+| Type-C | Top (left/right) | 12 | 2,004 |
 
 *[Usage examples and guidelines will be provided with the dataset release]*
 
-## Installation
+## 🏆 Citation
 
-*[Installation instructions will be added with code release]*
+If you use this work in your research, please cite our paper:
 
-## Citation
+```bibtex
+@inproceedings{ye2026ttt,
+  title={Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training},
+  author={Ye, Jiaxing and Kobayashi, Takumi},
+  booktitle={IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  year={2026},
+  organization={IEEE}
+}
+```
 
-*[Citation information will be provided upon publication]*
+## 📄 License
 
-## License
+This project is released under the [MIT License](LICENSE), making it freely available for research and commercial use.
 
-This dataset is released under the Attribution-NonCommercial 4.0 International license
-=======================================================================
-Creative Commons Corporation ("Creative Commons") is not a law firm and
-does not provide legal services or legal advice. Distribution of
-Creative Commons public licenses does not create a lawyer-client or
-other relationship. Creative Commons makes its licenses and related
-information available on an "as-is" basis. Creative Commons gives no
-warranties regarding its licenses, any material licensed under their
-terms and conditions, or any related information. Creative Commons
-disclaims all liability for damages resulting from their use to the
-fullest extent possible..
+## 🤝 Contributing
 
-## Contributing
+We welcome contributions to improve TTT-MAE! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-*[Contributing guidelines will be added as the project develops]*
+### Areas for Contribution
+- Extended domain shift scenarios
+- Additional TTT methods comparison  
+- Improved visualization tools
+- Performance optimizations
+- Documentation improvements
 
-## Contact
+## 📞 Contact
 
-For questions about the dataset or collaboration opportunities, please open an issue in this repository.
+- **Authors**: Jiaxing Ye, Takumi Kobayashi
+- **Affiliation**: National Institute of Advanced Industrial Science and Technology (AIST)
+- **Issues**: Please open an issue for questions or bug reports
+- **Collaboration**: Contact through GitHub for research collaboration opportunities
+
+## 🙏 Acknowledgments
+
+- ImageNet pre-trained MAE models from Facebook Research
+- Ultrasonic wavefield imaging source dataset contributors
+- PyTorch and timm library maintainers
+- Open-source community for development tools and frameworks
