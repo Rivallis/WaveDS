@@ -207,26 +207,13 @@ Output: Adapted model parameters θ*
 
 *[Usage examples and guidelines will be provided with the dataset release]*
 
-# ## 🏆 Citation
-
-#  If you use this work in your research, please cite our paper:
-
-#  ```bibtex
-# @inproceedings{ye2026ttt,
-  title={Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training},
-  author={Ye, Jiaxing and Kobayashi, Takumi},
-  booktitle={IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
-  year={2026},
-  organization={IEEE}
-# } 
-
 ## 📄 License
 
 This project is released under the [MIT License](LICENSE), making it freely available for research and commercial use.
 
 ## 🤝 Contributing
 
-We welcome contributions to improve TTT-MAE! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+If you want to contribute to this project, please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### Areas for Contribution
 - Extended domain shift scenarios
