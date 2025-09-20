@@ -6,15 +6,16 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Paper](https://img.shields.io/badge/paper-ICASSP%202026-red.svg)](#citation)
 
-This repository contains the official implementation of **Test-Time Training with Masked Autoencoders (TTT-MAE)** for ultrasonic wavefield pattern analysis. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
+This repository contains the official implementation of **Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training** for ICASSP 2026 submission. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
+
+
 
 ## 🎯 Overview
 
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen structures** (flat plates vs. pipes)
 - **Transducer positions** (top, side, left/right placement)  
-- **Defect conditions** (size, type, location)
-- **Measurement device specifications**
+- **Defect conditions** (sizes)
 
 Our **Sequential TTT-MAE** approach enables progressive feature adaptation during inference, achieving significant performance improvements:
 
@@ -32,19 +33,7 @@ Our **Sequential TTT-MAE** approach enables progressive feature adaptation durin
 - Self-supervised learning with Masked Autoencoder (MAE)
 
 ### 📊 **Benchmarking Dataset**  
-- Real ultrasonic wavefield images with systematic domain shifts
-- Multiple specimen geometries and transducer configurations
-- Controlled defect conditions for reproducible evaluation
-
-### 🔬 **Physics-Aware Adaptation**
-- Designed specifically for ultrasonic wavefield pattern analysis
-- Maintains temporal correlations in sequential measurements
-- Addresses unique challenges in physics-based signal processing
-
 ## Overview
-
-This dataset enables quantitative evaluation of model robustness under domain shift and assessment of improvement from post-deployment learning methods. Domain shifts are systematically introduced by varying:
-
 - **Specimen geometry**: Different shapes and configurations of test specimens
 - **Defect size**: Various artificial defect dimensions and characteristics  
 - **Transducer placement**: Different positioning and orientation of ultrasonic transducers
