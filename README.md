@@ -4,7 +4,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-# [![Paper](https://img.shields.io/badge/paper-ICASSP%202026-red.svg)](#citation)
+% # [![Paper](https://img.shields.io/badge/paper-ICASSP%202026-red.svg)](#citation)
 
 This repository contains the official implementation of **Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training** for ICASSP 2026 submission. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
 
