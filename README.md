@@ -24,7 +24,7 @@ Our **Sequential TTT-MAE** approach enables progressive feature adaptation durin
 
 
 ## 📊 **Benchmarking Dataset**  
-## Concept
+### Concept
 
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen geometry**: Different shapes and configurations of test specimens
@@ -37,7 +37,7 @@ The dataset consists of ultrasonic wavefield imaging data collected from mock sp
 - Development and validation of domain adaptation techniques
 - Assessment of post-deployment learning strategies
 
-## 📈 Specifications
+### 📈 Specifications
 
 ### Source Dataset (Training)
 - **Specimen**: Aluminum plates  
