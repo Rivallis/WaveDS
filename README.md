@@ -5,11 +5,9 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](LICENSE)
 
-This repository contains the official implementation of **Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training** for ICASSP 2026 submission. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
-
-
 
 ## 🎯 Overview
+This repository contains the official implementation of **Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training** for ICASSP 2026 submission. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
 
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen structures** (flat plates vs. pipes)
@@ -24,27 +22,81 @@ Our **Sequential TTT-MAE** approach enables progressive feature adaptation durin
 | Type-B       | 66.46%         | **81.15%**             | +14.69%     |
 | Type-C       | 56.09%         | **76.77%**             | +20.68%     |
 
-## 🚀 Key Features
 
-### ✨ **Sequential Test-Time Training**
-- Exploits temporal structure in ultrasonic wavefield snapshots
-- Progressive adaptation through mini-batch processing
-- Self-supervised learning with Masked Autoencoder (MAE)
+## 📊 **Benchmarking Dataset**  
+## Concept
 
-### 📊 **Benchmarking Dataset**  
-## Overview
+Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen geometry**: Different shapes and configurations of test specimens
 - **Defect size**: Various artificial defect dimensions and characteristics  
 - **Transducer placement**: Different positioning and orientation of ultrasonic transducers
 
-## Dataset Description
-
 The dataset consists of ultrasonic wavefield imaging data collected from mock specimens with artificial defects. This controlled approach allows for:
-
 - Systematic investigation of domain shift effects
 - Quantitative measurement of model performance degradation
 - Development and validation of domain adaptation techniques
 - Assessment of post-deployment learning strategies
+
+## 📈 Specifications
+
+### Source Dataset (Training)
+- **Specimen**: Aluminum plates  
+- **Images**: 7,004 samples (224×224×3)
+- **Labels**: Binary (defect/non-defect)
+
+### Target Dataset (Testing)  
+- **Specimen**: Aluminum pipes
+- **Images**: 4,008 samples (122×301×3)
+- **Domain Shifts**: 3 types based on transducer position
+
+| Domain Type | Transducer Position | Specimens | Samples |
+|-------------|-------------------|-----------|---------|
+| Type-A | Top (middle) | 6 | 1,002 |
+| Type-B | Side | 6 | 1,002 |  
+| Type-C | Top (left/right) | 12 | 2,004 |
+
+
+## 🔬 Technical Details
+
+## Architecture
+
+- **Backbone**: ViT-Base with Masked Autoencoder (MAE)
+- **Pre-training**: ImageNet pre-trained ViT-MAE
+- **Fine-tuning**: Source dataset (aluminum plate specimens)
+- **Adaptation**: Sequential TTT with temporal batching
+
+### Algorithm Overview
+
+```
+Input: Sequential wavefield snapshots X_T = {x_t}_{t=1}^T
+Output: Adapted model parameters θ*
+
+1. Group snapshots into temporal mini-batches B_1, ..., B_{T_B}
+2. For each mini-batch B_t:
+   a. Apply MAE auxiliary task with masking
+   b. Update encoder parameters θ_{(t)}
+   c. Maintain temporal correlations
+3. Use adapted model for classification
+```
+
+## 📊 Experimental Results
+
+### Domain Shift Performance
+
+| Method | Type-A (Acc.) | Type-B (Acc.) | Type-C (Acc.) | Avg. Improvement |
+|--------|---------------|---------------|---------------|------------------|
+| Deployed Model | 54.45% | 66.46% | 56.09% | Baseline |
+| LayerNorm Adaptation | 61.35% | 62.40% | 59.38% | +2.76% |
+| TTT-MAE | 69.90% | 63.33% | 61.82% | +6.09% |
+| **Seq-TTT-MAE (Ours)** | **87.50%** | **81.15%** | **76.77%** | **+22.81%** |
+
+### Key Findings
+1. **Temporal Structure Matters**: Sequential processing of wavefield snapshots significantly improves adaptation
+2. **Hyperparameter Sensitivity**: Optimal performance at batch size 32 with 32 adaptation iterations  
+3. **Physics-Aware Design**: Custom adaptation for ultrasonic data outperforms general CV methods
+
+
+
 
 ## 📦 Installation
 
@@ -132,66 +184,6 @@ ttt_engine.adapt_to_domain(
     domain_type='transducer_position'  # Type-A, Type-B, or Type-C
 )
 ```
-
-## 📊 Experimental Results
-
-### Domain Shift Performance
-
-| Method | Type-A (Acc.) | Type-B (Acc.) | Type-C (Acc.) | Avg. Improvement |
-|--------|---------------|---------------|---------------|------------------|
-| Deployed Model | 54.45% | 66.46% | 56.09% | Baseline |
-| LayerNorm Adaptation | 61.35% | 62.40% | 59.38% | +2.76% |
-| TTT-MAE | 69.90% | 63.33% | 61.82% | +6.09% |
-| **Seq-TTT-MAE (Ours)** | **87.50%** | **81.15%** | **76.77%** | **+22.81%** |
-
-### Key Findings
-
-1. **Temporal Structure Matters**: Sequential processing of wavefield snapshots significantly improves adaptation
-2. **Hyperparameter Sensitivity**: Optimal performance at batch size 32 with 32 adaptation iterations  
-3. **Physics-Aware Design**: Custom adaptation for ultrasonic data outperforms general CV methods
-
-## 🔬 Technical Details
-
-### Architecture
-
-- **Backbone**: ViT-Base with Masked Autoencoder (MAE)
-- **Pre-training**: ImageNet pre-trained ViT-MAE
-- **Fine-tuning**: Source dataset (aluminum plate specimens)
-- **Adaptation**: Sequential TTT with temporal batching
-
-### Algorithm Overview
-
-```
-Input: Sequential wavefield snapshots X_T = {x_t}_{t=1}^T
-Output: Adapted model parameters θ*
-
-1. Group snapshots into temporal mini-batches B_1, ..., B_{T_B}
-2. For each mini-batch B_t:
-   a. Apply MAE auxiliary task with masking
-   b. Update encoder parameters θ_{(t)}
-   c. Maintain temporal correlations
-3. Use adapted model for classification
-```
-
-## 📈 Dataset Specifications
-
-### Source Dataset (Training)
-- **Specimen**: Aluminum plates  
-- **Images**: 7,004 samples (224×224×3)
-- **Labels**: Binary (defect/non-defect)
-
-### Target Dataset (Testing)  
-- **Specimen**: Aluminum pipes
-- **Images**: 4,008 samples (122×301×3)
-- **Domain Shifts**: 3 types based on transducer position
-
-| Domain Type | Transducer Position | Specimens | Samples |
-|-------------|-------------------|-----------|---------|
-| Type-A | Top (middle) | 6 | 1,002 |
-| Type-B | Side | 6 | 1,002 |  
-| Type-C | Top (left/right) | 12 | 2,004 |
-
-*[Usage examples and guidelines will be provided with the dataset release]*
 
 ## 📄 License
 
