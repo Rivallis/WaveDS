@@ -33,7 +33,9 @@ Real-world ultrasonic inspection environments often exhibit statistical discrepa
 - **Defect size**: Various artificial defect dimensions and characteristics  
 - **Transducer placement**: Different positioning and orientation of ultrasonic transducers
 
-<img width="1496" height="645" alt="demoDataM" src="https://github.com/user-attachments/assets/2ca804e9-9f46-420e-9cd4-975832b298ba" />
+<p align="center">
+<img width="900" height="405" alt="demoDataM" src="https://github.com/user-attachments/assets/2ca804e9-9f46-420e-9cd4-975832b298ba" />
+</p>
 
 
 The dataset consists of ultrasonic wavefield imaging data collected from mock specimens with artificial defects. This controlled approach allows for:
