@@ -65,6 +65,10 @@ The dataset consists of ultrasonic wavefield imaging data collected from mock sp
 
 ## 🔬 Technical Details
 
+<p align="center">
+<img width=600 src="https://github.com/user-attachments/assets/8a652193-8f64-4676-b978-a1a18cac8435">
+</p>
+
 ## Architecture
 
 - **Backbone**: ViT-Base with Masked Autoencoder (MAE)
