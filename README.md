@@ -8,9 +8,9 @@
 
 ## 🎯 Overview
 This repository contains the official implementation of **Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training** for ICASSP 2026 submission. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
-<p align="center">
+<!-- <p align="center">
 <img width=600 src="https://drive.google.com/uc?export=view&id=1iSLZfgmOgK4oMvlx_egz5Js3XMy4NFRC" class="foto-banner" alt="banner">
-</p>
+</p> -->
 
 
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
@@ -35,9 +35,9 @@ Real-world ultrasonic inspection environments often exhibit statistical discrepa
 - **Defect size**: Various artificial defect dimensions and characteristics  
 - **Transducer placement**: Different positioning and orientation of ultrasonic transducers
 
-<p align="center">
+<!-- <p align="center">
 <img width=600 src="https://drive.google.com/uc?export=view&id=1x3IYSeztJV1BUKJaZ2SS70hJq5qyXEyF" class="foto-banner" alt="banner">
-</p>
+</p> -->
 
 The dataset consists of ultrasonic wavefield imaging data collected from mock specimens with artificial defects. This controlled approach allows for:
 - Systematic investigation of domain shift effects
@@ -67,9 +67,9 @@ The dataset consists of ultrasonic wavefield imaging data collected from mock sp
 ## 🔬 Technical Details
 
 
-<p align="center">
+<!-- <p align="center">
 <img width=600 src="https://drive.google.com/uc?export=view&id=16YHwF99pymipFtmy86TXx25qAPJ_zkhf" class="foto-banner" alt="banner">
-</p>
+</p> -->
 
 
 ## Architecture
