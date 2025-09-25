@@ -11,6 +11,8 @@ This repository contains the official implementation of **Mitigating Domain Shif
 <p align="center">
 <img width=600 src="[https://drive.google.com/uc?id=1iSLZfgmOgK4oMvlx_egz5Js3XMy4NFRC]">
 </p>
+
+
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen structures** (flat plates vs. pipes)
 - **Transducer positions** (top, side, left/right placement)  
