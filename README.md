@@ -9,7 +9,7 @@
 ## 🎯 Overview
 This repository contains the official implementation of **Mitigating Domain Shift in Ultrasonic Wavefield Pattern Analysis through Test-Time Training** for ICASSP 2026 submission. Our method addresses the critical challenge of domain shift in physics-based signal analysis by enabling deployed neural networks to adapt on-the-fly during inference.
 <p align="center">
-<img width=600 src="[https://github.com/user-attachments/assets/1f809d35-a3ad-43f4-9a1a-2221237c6312](https://drive.google.com/file/d/1iSLZfgmOgK4oMvlx_egz5Js3XMy4NFRC/view?usp=drive_link)">
+<img width=600 src="[https://drive.google.com/file/d/1iSLZfgmOgK4oMvlx_egz5Js3XMy4NFRC/view?usp=sharing]">
 </p>
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen structures** (flat plates vs. pipes)
