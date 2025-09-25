@@ -36,9 +36,8 @@ Real-world ultrasonic inspection environments often exhibit statistical discrepa
 - **Transducer placement**: Different positioning and orientation of ultrasonic transducers
 
 <p align="center">
-<img width="600" height="305" alt="demoDataM" src="https://github.com/user-attachments/assets/2ca804e9-9f46-420e-9cd4-975832b298ba" />
+<img width=600 src="https://drive.google.com/uc?export=view&id=1x3IYSeztJV1BUKJaZ2SS70hJq5qyXEyF" class="foto-banner" alt="banner">
 </p>
-
 
 The dataset consists of ultrasonic wavefield imaging data collected from mock specimens with artificial defects. This controlled approach allows for:
 - Systematic investigation of domain shift effects
@@ -67,9 +66,11 @@ The dataset consists of ultrasonic wavefield imaging data collected from mock sp
 
 ## 🔬 Technical Details
 
+
 <p align="center">
-<img width=600 src="https://github.com/user-attachments/assets/8a652193-8f64-4676-b978-a1a18cac8435">
+<img width=600 src="https://drive.google.com/uc?export=view&id=16YHwF99pymipFtmy86TXx25qAPJ_zkhf" class="foto-banner" alt="banner">
 </p>
+
 
 ## Architecture
 
