@@ -50,30 +50,41 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 @torch.no_grad()
-def accuracy(output: torch.Tensor, target: torch.Tensor, topk: Tuple[int, ...] = (1,)) -> List[torch.Tensor]:
+@torch.no_grad()
+def accuracy(labels_gt: torch.Tensor, pred_classes: torch.Tensor) -> float:
     """
-    Compute classification accuracy for the top-k predictions.
+    Compute classification accuracy between ground truth labels and predicted class indices.
     
     Args:
-        output (torch.Tensor): Model predictions of shape (batch_size, num_classes)
-        target (torch.Tensor): Ground truth labels of shape (batch_size,)
-        topk (Tuple[int, ...]): Tuple of k values for top-k accuracy computation
+        labels_gt (torch.Tensor): Ground truth labels of shape (batch_size,) with integer class indices
+        pred_classes (torch.Tensor): Predicted class indices of shape (batch_size,) with integer class indices
         
     Returns:
-        List[torch.Tensor]: List of top-k accuracies as percentages
+        float: Accuracy as percentage (0-100)
+        
+    Examples:
+        >>> labels_gt = torch.tensor([0, 1, 0, 1])
+        >>> pred_classes = torch.tensor([0, 1, 0, 0])  # One wrong prediction
+        >>> accuracy(labels_gt, pred_classes)
+        75.0
     """
-    maxk = max(topk)
-    batch_size = target.size(0)
+    # Handle empty tensors
+    if labels_gt.numel() == 0:
+        return 0.0
     
-    # Get top-k predictions
-    _, pred = output.topk(maxk, dim=1, largest=True, sorted=True)
-    pred = pred.t()
+    # Ensure tensors are on the same device
+    if labels_gt.device != pred_classes.device:
+        pred_classes = pred_classes.to(labels_gt.device)
     
-    # Check correctness
-    correct = pred.eq(target.reshape(1, -1).expand_as(pred))
+    # Ensure correct data types
+    labels_gt = labels_gt.long()
+    pred_classes = pred_classes.long()
     
-    # Calculate accuracy for each k
-    return [correct[:k].reshape(-1).float().sum(0) * 100.0 / batch_size for k in topk]
+    # Calculate accuracy
+    correct = (pred_classes == labels_gt).float()
+    accuracy_pct = correct.mean() * 100.0
+    
+    return accuracy_pct.item()
 
 class OnlineLayerNormUpdater:
     """
@@ -1489,4 +1500,5 @@ def save_results(args):
         # for i in range(args.steps_per_example):
             # assert len(all_all_results[i]) == 50000, len(all_all_results[i])
             # f.write(f'{i}\t{np.mean(all_acc).item()}\n')                        
+
         f.write(f'{all_acc.mean(axis=0)}')
