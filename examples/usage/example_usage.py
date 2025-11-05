@@ -1,322 +1,346 @@
-"""
-WaveDS Dataset Usage Examples
+# Copyright (c) Jiaxing YE & Takumi Kobayashi.
+# All rights reserved.
 
-This module demonstrates how to work with the WaveDS dataset for domain shift research
-in ultrasonic wavefield imaging.
-"""
-
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# References:
+# DeiT: https://github.com/facebookresearch/deit
+# BEiT: https://github.com/microsoft/unilm/tree/master/beit
+# --------------------------------------------------------
+import argparse
+import datetime
+import json
 import numpy as np
-import pandas as pd
-import h5py
+import os
+import time
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-import matplotlib.pyplot as plt
+import signal
 
-class WaveDSLoader:
-    """
-    Data loader for the WaveDS ultrasonic wavefield domain shift dataset.
+import torch
+import torch.backends.cudnn as cudnn
+from torch.utils.tensorboard import SummaryWriter
+import torchvision.transforms as transforms
+
+import timm
+from torchvision import datasets
+import glob
+import util.misc as misc
+import models_mae_shared
+# from engine_test_time import train_on_test, get_prameters_from_args
+# from engine_test_time_wavefield_BN import train_on_test_with_online_bn_update, get_prameters_from_args
+# from engine_TTT_wavefield_BN import train_on_test_with_online_bn_update, 
+# get_prameters_from_args
+
+from engine_TTT_wavefield_BN_vis import train_on_test_with_online_bn_update, get_prameters_from_args, plot_ttt_results
+
+from engine_baseline_wavefield_vis import test_with_online_bn_update
+# from data import tt_image_folder
+from util.misc import NativeScalerWithGradNormCount as NativeScaler
+from torch.utils.data import Dataset
+from PIL import Image
+
+
+def get_args_parser():
+    parser = argparse.ArgumentParser('MAE test time training', add_help=False)
+    parser.add_argument('--print_freq', default=50, type=int)
+    parser.add_argument('--finetune_mode', default='encoder', type=str, help='all, encoder, encoder_no_cls_no_msk.')
+    # Model parameters
+    parser.add_argument('--model', default='mae_vit_base_patch16', type=str, metavar='MODEL',
+                        help='Name of model to train')
+    parser.add_argument('--input_size', default=224, type=int,
+                        help='images input size')
+    parser.add_argument('--classifier_depth', type=int, metavar='N', default=0,
+                        help='number of blocks in the classifier')
+    # Test time training
+    parser.add_argument('--mask_ratio', default=0.75, type=float,
+                        help='Masking ratio (percentage of removed patches).')
+    parser.add_argument('--steps_per_example', default=64, type=int,)
+    parser.add_argument('--stored_latents', default='', help='have we generated the latents already?')
+    # Optimizer parameters
+    parser.add_argument('--weight_decay', type=float, default=0.05,
+                        help='weight decay (default: 0.05)')
+
+    parser.add_argument('--blr', type=float, default=1e-3, metavar='LR',
+                        help='base learning rate: absolute_lr = base_lr * total_batch_size / 256')
+    # Dataset parameters
+    parser.add_argument('--batch_size', default=256, type=int,)
+    parser.add_argument('--data_path', default='', type=str,
+                        help='dataset path')
+    parser.add_argument('--dataset_name', default='imagenet_c', type=str,
+                        help='dataset name')
+    parser.add_argument('--output_dir', default='./output_dir',
+                        help='path where to save, empty for no saving')
+    parser.add_argument('--log_dir', default='./output_dir',
+                        help='path where to tensorboard log')
+    parser.add_argument('--device', default='cuda',
+                        help='device to use for training / testing')
+    parser.add_argument('--accum_iter', default=1, type=int,
+                        help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
+    parser.add_argument('--load_loss_scalar', action='store_true')
+    parser.set_defaults(load_loss_scalar=False)
+    parser.add_argument('--optimizer_type', default='sgd', help='adam, adam_w, sgd.')
+    parser.add_argument('--optimizer_momentum', default=0.9, type=float, help='adam, adam_w, sgd.')
+    parser.add_argument('--seed', default=0, type=int)
+    parser.add_argument('--resume_model', default='vit-B-ft-US.pt', help='resume from checkpoint')
+    parser.add_argument('--resume_finetune', default='vit-B-ft-US.pt', help='resume from checkpoint')
+    parser.add_argument('--num_workers', default=0, type=int)
+    parser.add_argument('--pin_mem', action='store_true',
+                        help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
+    parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
+    parser.set_defaults(pin_mem=False)
+    parser.add_argument('--norm_pix_loss', action='store_true',
+                        help='Use (per-patch) normalized pixels as targets for computing loss')
+    parser.set_defaults(norm_pix_loss=False)
+    parser.add_argument('--verbose', action='store_true')
+    parser.set_defaults(verbose=False)
+    parser.add_argument('--head_type', default='vit_head',
+                        help='Head type - linear or vit_head')
     
-    This class provides utilities to load measurement data, metadata, and 
-    organize domain splits for machine learning experiments.
-    """
-    
-    def __init__(self, dataset_path: str):
-        """
-        Initialize the WaveDS data loader.
+    parser.add_argument('--single_crop', action='store_true',
+                        help='single_crop training')
+    parser.add_argument('--no_single_crop', action='store_false', dest='single_crop')
+    parser.set_defaults(single_crop=False)
+    # distributed training parameters
+    parser.add_argument('--world_size', default=1, type=int,
+                        help='number of distributed processes')
+    parser.add_argument('--local_rank', default=-1, type=int)
+    parser.add_argument('--dist_on_itp', action='store_true')
+    parser.add_argument('--dist_url', default='env://',
+                        help='url used to set up distributed training')
+
+    return parser
+
+
+class CustomTensorDataset(Dataset):
+    def __init__(self, tensors, targets, transform=None):
+        self.tensors = tensors
+        self.targets = targets
+        self.transform = transform
+
+    def __getitem__(self, index):
+        x = self.tensors[index]
+        y = self.targets[index]
+        # Convert tensor to numpy array for transforms
+        if isinstance(x, torch.Tensor):
+            x = x.cpu().numpy()
         
-        Args:
-            dataset_path: Path to the WaveDS dataset root directory
-        """
-        self.dataset_path = Path(dataset_path)
-        self.data_path = self.dataset_path / "data"
-        self.metadata_path = self.dataset_path / "metadata"
+        # If it's a grayscale image with shape (H, W), add channel dimension
+        if len(x.shape) == 2:
+            x = np.expand_dims(x, axis=2)
         
-        # Load metadata tables
-        self._load_metadata()
+        # If shape is (C, H, W), transpose to (H, W, C)
+        if x.ndim == 3 and x.shape[0]==3:
+            x = x.transpose(1, 2, 0)
+                            
+        if self.transform:
+            # if x.shape[2] == 3 and len(x.shape) == 3:
+            #     x = x.transpose(2, 0, 1)  # (C, H, W)            
+            # x = x.transpose(1, 2, 0)  # (H, W, C)
+            x1 = transforms.ToPILImage()(x)
+            # x = self.transform(x)
+            x = self.transform(x1)
+        return x, y
+
+    def __len__(self):
+        return len(self.tensors)
+
+def load_combined_model(args, num_classes: int = 1000):
+    if args.model == 'mae_vit_small_patch16':
+        classifier_depth = 8
+        classifier_embed_dim = 512
+        classifier_num_heads = 16
+    elif args.model == 'mae_vit_base_patch16':
+        classifier_embed_dim = 768
+        classifier_depth = 12
+        classifier_num_heads = 12
+    else:
+        assert 'mae_vit_large_patch16' in args.model or 'mae_vit_huge_patch14' in args.model
+        classifier_embed_dim = 768
+        classifier_depth = 12
+        classifier_num_heads = 12
+    model = models_mae_shared.__dict__[args.model](num_classes=num_classes, head_type=args.head_type, norm_pix_loss=args.norm_pix_loss, 
+                                                   classifier_depth=classifier_depth, classifier_embed_dim=classifier_embed_dim, 
+                                                   classifier_num_heads=classifier_num_heads,
+                                                   rec_opt=False,
+                                                   rotation_prediction=False)
+    model_checkpoint = torch.load(args.resume_model, map_location='cpu', weights_only=False)
+    head_checkpoint = torch.load(args.resume_finetune, map_location='cpu', weights_only=False)
     
-    def _load_metadata(self):
-        """Load all metadata tables into memory."""
-        try:
-            self.specimens = pd.read_csv(self.metadata_path / "specimen_specifications.csv")
-            self.defects = pd.read_csv(self.metadata_path / "defect_parameters.csv")
-            self.transducers = pd.read_csv(self.metadata_path / "transducer_configs.csv")
-            self.conditions = pd.read_csv(self.metadata_path / "measurement_conditions.csv")
-        except FileNotFoundError as e:
-            print(f"Warning: Could not load metadata files: {e}")
-            print("Some functionality may be limited.")
+    # Handle different checkpoint formats
+    if isinstance(head_checkpoint, dict) and 'model' in head_checkpoint:
+        head_state_dict = head_checkpoint['model']
+    elif hasattr(head_checkpoint, 'state_dict'):
+        head_state_dict = head_checkpoint.state_dict()
+    else:
+        # If it's already a state dict or a model object without state_dict method
+        head_state_dict = head_checkpoint
     
-    def load_measurement(self, measurement_file: str) -> Dict:
-        """
-        Load a single measurement file.
         
-        Args:
-            measurement_file: Path to HDF5 measurement file
+    if args.head_type == 'linear':
+        model_checkpoint['model']['bn.running_mean'] = head_checkpoint['model']['head.0.running_mean']
+        model_checkpoint['model']['bn.running_var'] = head_checkpoint['model']['head.0.running_var']
+        model_checkpoint['model']['head.weight'] = head_checkpoint['model']['head.1.weight']
+        model_checkpoint['model']['head.bias'] = head_checkpoint['model']['head.1.bias']
+    elif False:
+        assert args.classifier_depth != 0, 'Please provide classifier_depth parameter.'
+        for key in head_checkpoint['model']:
+            if key.startswith('classifier'):
+                model_checkpoint['model'][key] = head_checkpoint['model'][key]
+        
+    missing_keys, unexpected_keys = model.load_state_dict(head_state_dict, strict=False)
+    print(f"Missing keys: {missing_keys}")
+    print(f"Unexpected keys: {unexpected_keys}")
+    # model.load_state_dict(head_state_dict)                
+    # model.load_state_dict(model_checkpoint['model'])
+    optimizer = None
+    if args.load_loss_scalar:
+        loss_scaler = NativeScaler()
+        loss_scaler.load_state_dict(model_checkpoint['scaler'])
+    else:
+        loss_scaler = None
+    return model, optimizer, loss_scaler
+
+def main(args):
+    # misc.init_distributed_mode(args)
+
+    print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
+    print("{}".format(args).replace(', ', ',\n'))
+
+    device = torch.device(args.device)
+    # fix the seed for reproducibility
+    seed = args.seed + misc.get_rank()
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    cudnn.benchmark = True
+    max_known_file = max([int(i.split('results_')[-1].split('.npy')[0]) for i in glob.glob(os.path.join(args.output_dir, 'results_*.npy'))] + [-1])
+    if max_known_file != -1:
+        print(f'Found {max_known_file} values, continues from next iterations.')
+        
+    # simple augmentation    
+    transform_val = transforms.Compose([
+            transforms.Resize(256, interpolation=3),
+            transforms.CenterCrop(args.input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    if not args.single_crop:
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(args.input_size, scale=(0.2, 1.0), interpolation=3),  # 3 is bicubic
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    else:
+        transform_train = transforms.Compose([
+            transforms.Resize(256, interpolation=3),
+            transforms.CenterCrop(args.input_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+        
+    data_path = args.data_path
+
+    # In your main training function, add these arguments:
+    # Set online BN parameters
+    args.bn_momentum = 0.05  # Lower for slower adaptation
+    args.bn_update_mode = 'adaptive'  # Adaptive momentum
+    args.preserve_bn_across_samples = True  # Keep BN across samples
+    
+
+    # dataset_train = tt_image_folder.ExtendedImageFolder(data_path, transform=transform_train, minimizer=None, 
+    #                                                     batch_size=args.batch_size, steps_per_example=args.steps_per_example * args.accum_iter, 
+    #                                                     single_crop=args.single_crop, start_index=max_known_file+1)
+
+    # dataset_val = tt_image_folder.ExtendedImageFolder(data_path, transform=transform_val, 
+    #                                                     batch_size=1, minimizer=None, 
+    #                                                     single_crop=args.single_crop, start_index=max_known_file+1)
+
+    num_classes = 2
+    classes = 2
+
+    if not 'USIplateOK' in locals():
+        exec(open('USdataRead.py').read(), globals())
+    
+    global USIplateNG, USIplateNGlabel, USIpipeNG, USIpipeNGlabel, USIpipeNGidx
+    USIplateNGlabel = USIplateNGlabel.flatten().long()
+    USIpipeNGlabel = USIpipeNGlabel.flatten().long()
+    USIpipeNGidx = USIpipeNGidx.flatten().long()
+    
+    
+    # USIlab = USIpipeNGlabel
+    
+    ds_val = CustomTensorDataset(USIplateNG, USIplateNGlabel, transform=transform_val)    
+    
+    ds_val = CustomTensorDataset(USIpipeNG, USIpipeNGlabel, transform=transform_val)
+    
+    
+    # sampID = 2
+    
+    # for sampID in USIpipeNGidx.unique():
+    
+    for sampID in USIpipeNGidx.unique():    
+    # for sampID in [1]:
+        
+        sampID = sampID.item()
+        print(f'Processing sample: {sampID}')
+        
+        ds_val = CustomTensorDataset(USIpipeNG[USIpipeNGidx==sampID], USIpipeNGlabel[USIpipeNGidx==sampID], transform=transform_val)
+        
+        args.sampID = int(sampID)
+        # Set num_workers=0 to avoid multiprocessing issues
+        dataset_val = torch.utils.data.DataLoader(ds_val, 32, shuffle=False, num_workers=0)
+
+        # Set num_workers=0 to avoid multiprocessing issues
+        
+        # define the model
+        # model, optimizer, scalar = load_combined_model(args, num_classes)
             
-        Returns:
-            Dictionary containing wavefield data, coordinates, and metadata
-        """
-        with h5py.File(measurement_file, 'r') as f:
-            data = {
-                'wavefield': f['wavefield_data'][:],
-                'coordinates': f['spatial_coordinates'][:],
-                'temporal_info': f['temporal_info'][:],
-                'metadata': dict(f.attrs)
-            }
-        return data
-    
-    def get_domain_data(self, domain_filter: Dict) -> List[str]:
-        """
-        Get list of measurement files matching domain criteria.
-        
-        Args:
-            domain_filter: Dictionary specifying domain criteria
-                          e.g., {'specimen_type': 'aluminum_plates', 
-                                'geometry': 'thickness_5mm'}
-        
-        Returns:
-            List of measurement file paths
-        """
-        # This is a simplified example - actual implementation would
-        # use the metadata tables to filter measurements
-        measurement_files = []
-        
-        # Example logic to find matching files
-        for specimen_type in domain_filter.get('specimen_types', ['*']):
-            for geometry in domain_filter.get('geometries', ['*']):
-                for defect in domain_filter.get('defects', ['*']):
-                    pattern = self.data_path / specimen_type / geometry / defect
-                    if pattern.exists():
-                        measurement_files.extend(pattern.glob("*/*.h5"))
-        
-        return measurement_files
-    
-    def create_domain_split(self, source_domains: List[Dict], 
-                          target_domains: List[Dict]) -> Tuple[List[str], List[str]]:
-        """
-        Create domain split for transfer learning experiments.
-        
-        Args:
-            source_domains: List of domain specifications for training
-            target_domains: List of domain specifications for testing
+        base_model, base_optimizer, base_scalar = load_combined_model(args, num_classes)
             
-        Returns:
-            Tuple of (source_files, target_files)
-        """
-        source_files = []
-        target_files = []
+        print("Model = %s" % str(base_model))
+
+        eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
         
-        for domain in source_domains:
-            source_files.extend(self.get_domain_data(domain))
+        args.lr = args.blr * eff_batch_size / 256
+        args.runMAE = False
+
+
+        wandb_config = vars(args)
+        base_lr = (args.lr * 256 / eff_batch_size)
+        wandb_config['base_lr'] = base_lr
+        print("base lr: %.2e" % base_lr)
+        print("actual lr: %.2e" % args.lr)
+
+        print("accumulate grad iterations: %d" % args.accum_iter)
+        print("effective batch size: %d" % eff_batch_size)
         
-        for domain in target_domains:
-            target_files.extend(self.get_domain_data(domain))
+        start_time = time.time()
+        # test_stats = train_on_test(
+        #     model, optimizer, scalar, ds_val, ds_val,
+        #     device,
+        #     log_writer=None,
+        #     args=args,
+        #     num_classes=num_classes,
+        #     iter_start=max_known_file+1
+        # )
+
+        # Call the modified training function
+        # train_on_test_with_online_bn_update(base_model, base_optimizer, base_scalar, 
+        #                             ds_val, ds_val, device, 
+        #                             log_writer=None, args=args, num_classes=num_classes)        
         
-        return source_files, target_files
-
-
-def example_domain_shift_evaluation():
-    """
-    Example: Evaluate domain shift impact on defect detection.
-    
-    This example demonstrates how to use WaveDS for evaluating
-    model performance under domain shift conditions.
-    """
-    
-    # Initialize data loader
-    loader = WaveDSLoader("/path/to/WaveDS")
-    
-    # Define source and target domains
-    source_domains = [
-        {
-            'specimen_types': ['aluminum_plates'],
-            'geometries': ['thickness_5mm'],
-            'defects': ['hole_2mm', 'hole_5mm']
-        }
-    ]
-    
-    target_domains = [
-        {
-            'specimen_types': ['aluminum_plates'], 
-            'geometries': ['thickness_10mm'],  # Different thickness
-            'defects': ['hole_2mm', 'hole_5mm']
-        },
-        {
-            'specimen_types': ['steel_plates'],   # Different material
-            'geometries': ['thickness_5mm'],
-            'defects': ['hole_2mm', 'hole_5mm']
-        }
-    ]
-    
-    # Create domain split
-    source_files, target_files = loader.create_domain_split(source_domains, target_domains)
-    
-    print(f"Source domain: {len(source_files)} measurements")
-    print(f"Target domains: {len(target_files)} measurements")
-    
-    # Load and process data (example)
-    source_data = []
-    for file_path in source_files[:5]:  # Load first 5 for demonstration
-        measurement = loader.load_measurement(file_path)
-        # Extract features from wavefield data
-        features = extract_features(measurement['wavefield'])
-        source_data.append(features)
-    
-    # Train model on source domain
-    model = train_defect_detector(source_data)
-    
-    # Evaluate on target domains
-    target_performance = []
-    for file_path in target_files[:5]:
-        measurement = loader.load_measurement(file_path)
-        features = extract_features(measurement['wavefield'])
-        performance = evaluate_model(model, features)
-        target_performance.append(performance)
-    
-    # Analyze domain shift impact
-    analyze_domain_shift_impact(source_data, target_performance)
-
-
-def extract_features(wavefield_data: np.ndarray) -> np.ndarray:
-    """
-    Extract features from ultrasonic wavefield data.
-    
-    Args:
-        wavefield_data: Raw wavefield measurements
+        test_with_online_bn_update(base_model, base_optimizer, base_scalar, 
+                                    ds_val, ds_val, device, 
+                                    log_writer=None, args=args, num_classes=num_classes,
+                                    iter_start=max_known_file+1)
         
-    Returns:
-        Feature vector for machine learning
-    """
-    # Example feature extraction
-    # In practice, this would include sophisticated signal processing
-    
-    # Time-domain features
-    max_amplitude = np.max(np.abs(wavefield_data))
-    energy = np.sum(wavefield_data ** 2)
-    
-    # Frequency-domain features
-    fft_data = np.fft.fft(wavefield_data, axis=-1)
-    dominant_freq = np.argmax(np.abs(fft_data))
-    spectral_centroid = np.sum(np.arange(len(fft_data)) * np.abs(fft_data)) / np.sum(np.abs(fft_data))
-    
-    # Spatial features
-    spatial_variance = np.var(wavefield_data, axis=(0, 1))
-    
-    features = np.array([max_amplitude, energy, dominant_freq, spectral_centroid] + 
-                       spatial_variance.tolist())
-    
-    return features
+        total_time = time.time() - start_time
+        total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+        print('Training time {}'.format(total_time_str))
 
 
-def train_defect_detector(training_data: List[np.ndarray]):
-    """
-    Train a defect detection model.
-    
-    Args:
-        training_data: List of feature vectors
-        
-    Returns:
-        Trained model (placeholder)
-    """
-    # Placeholder for actual model training
-    print("Training defect detection model...")
-    return "trained_model"
-
-
-def evaluate_model(model, features: np.ndarray) -> float:
-    """
-    Evaluate model performance.
-    
-    Args:
-        model: Trained model
-        features: Feature vector
-        
-    Returns:
-        Performance metric (e.g., accuracy)
-    """
-    # Placeholder for actual model evaluation
-    # In practice, this would return actual performance metrics
-    return np.random.random()  # Dummy performance value
-
-
-def analyze_domain_shift_impact(source_data: List[np.ndarray], 
-                               target_performance: List[float]):
-    """
-    Analyze the impact of domain shift on model performance.
-    
-    Args:
-        source_data: Source domain training data
-        target_performance: Performance on target domains
-    """
-    print("\nDomain Shift Analysis:")
-    print(f"Average target performance: {np.mean(target_performance):.3f}")
-    print(f"Performance variance: {np.var(target_performance):.3f}")
-    
-    # Additional analysis would include:
-    # - Domain shift quantification metrics
-    # - Feature distribution analysis
-    # - Visualization of performance degradation
-
-
-def example_benchmark_evaluation():
-    """
-    Example: Benchmark evaluation for domain adaptation methods.
-    """
-    
-    print("WaveDS Benchmark Evaluation Example")
-    print("="*50)
-    
-    # Define benchmark scenarios
-    scenarios = [
-        {
-            'name': 'Geometric Domain Shift',
-            'description': 'Different specimen thickness',
-            'source': {'geometries': ['thickness_5mm']},
-            'target': {'geometries': ['thickness_10mm']}
-        },
-        {
-            'name': 'Material Domain Shift', 
-            'description': 'Different specimen materials',
-            'source': {'specimen_types': ['aluminum_plates']},
-            'target': {'specimen_types': ['steel_plates']}
-        },
-        {
-            'name': 'Scale Domain Shift',
-            'description': 'Different defect sizes',
-            'source': {'defects': ['hole_5mm']},
-            'target': {'defects': ['hole_2mm']}
-        }
-    ]
-    
-    # Evaluate each scenario
-    for scenario in scenarios:
-        print(f"\nEvaluating: {scenario['name']}")
-        print(f"Description: {scenario['description']}")
-        
-        # Here you would:
-        # 1. Load source and target domain data
-        # 2. Train baseline model on source
-        # 3. Evaluate on target (no adaptation)
-        # 4. Apply domain adaptation methods
-        # 5. Compare performance improvements
-        
-        print("Baseline (no adaptation): 65.2% accuracy")
-        print("Domain adaptation method 1: 78.5% accuracy")
-        print("Domain adaptation method 2: 82.1% accuracy")
-
-
-if __name__ == "__main__":
-    print("WaveDS Dataset Usage Examples")
-    print("="*50)
-    
-    # Run example evaluations
-    print("\n1. Domain Shift Evaluation Example:")
-    example_domain_shift_evaluation()
-    
-    print("\n2. Benchmark Evaluation Example:")
-    example_benchmark_evaluation()
-    
-    print("\nFor more detailed examples and documentation, see:")
-    print("- README.md: Project overview")
-    print("- DATASET.md: Detailed dataset documentation") 
-    print("- METHODOLOGY.md: Scientific methodology")
-    print("- CONTRIBUTING.md: How to contribute")
+if __name__ == '__main__':
+    args = get_args_parser()
+    args = args.parse_args()
+    if args.output_dir:
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    main(args)
