@@ -9,7 +9,11 @@ WaveDS/
 ├── examples/                           # Main data directory
 │   ├── PlateWavefields/            # Specimen type 1, plate-shaped; used for model training (ViT finetuning)
 │   │   ├── Various wavefield snapshots, including both defective and normal patterns of wave propagation. 
-│   ├── PipeWavefields/               # Specimen type 2, pipe-shaped; used for test-time training at inference stage
+│   ├── PipeWavefields/               # Specimen type 2, pipe-shaped; used for test-time training at inference stage, with different sensor positioning
+│   │   ├── Edge/
+│   │   ├── Top/
+│   │   ├── Top_LR/
+Various wavefield snapshots, including both defective and normal patterns of wave propagation. 
 ```
 
 ## File Naming Convention
