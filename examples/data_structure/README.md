@@ -15,6 +15,8 @@ WaveDS/
 │   │   ├── Top_LR/
 Various wavefield snapshots, including both defective and normal patterns of wave propagation. 
 ```
+The USimgAIST dataset can be downloaded via following URL:
+https://drive.google.com/drive/folders/1P5k5RWfNcdmg8JXEeoeesvbjDB8XrZiX?usp=sharing
 
 ## File Naming Convention
 -No. of specimen (#)
