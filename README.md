@@ -28,7 +28,7 @@ Our **Sequential TTT-MAE** approach enables progressive feature adaptation durin
 
 
 ## 📊 **Benchmarking Dataset**  
-### Concept
+### Domain shift in ultrasoinc wavefield patterns in non-destructive inspection
 
 Real-world ultrasonic inspection environments often exhibit statistical discrepancies from training data due to variations in:
 - **Specimen geometry**: Different shapes and configurations of test specimens
@@ -76,8 +76,8 @@ The dataset consists of ultrasonic wavefield imaging data collected from mock sp
 
 - **Backbone**: ViT-Base with Masked Autoencoder (MAE)
 - **Pre-training**: ImageNet pre-trained ViT-MAE
-- **Fine-tuning**: Source dataset (aluminum plate specimens)
-- **Adaptation**: Sequential TTT with temporal batching
+- **Fine-tuning**: Source dataset (aluminum plate specimens) with ViT finetuning
+- **Adaptation**: Target dataset (aluminum pipe specimens) with Sequential TTT with temporal batching
 
 ### Algorithm Overview
 
@@ -107,9 +107,7 @@ Output: Adapted model parameters θ*
 ### Key Findings
 1. **Temporal Structure Matters**: Sequential processing of wavefield snapshots significantly improves adaptation
 2. **Hyperparameter Sensitivity**: Optimal performance at batch size 32 with 32 adaptation iterations  
-3. **Physics-Aware Design**: Custom adaptation for ultrasonic data outperforms general CV methods
-
-
+3. **Physics-Aware Design**: Spatial-temporal adaptation for ultrasonic data outperforms general setting in computer vision
 
 
 ## 📦 Installation
@@ -130,93 +128,14 @@ cd WaveDS
 pip install -r requirements.txt
 
 # Download large files (model and data)
-# See LARGE_FILES.md for download instructions
-
-# Verify installation
-python test_verification.py
-```
-
-### Alternative Installation Methods
-
-**Conda Environment:**
-```bash
-conda env create -f environment.yml
-conda activate ttt-mae
-```
-
-**Minimal Installation:**
-```bash
-pip install -r requirements-minimal.txt
-```
-
-## 🚀 Usage
-
-### Basic Example
-
-```python
-import torch
-from TTT_main_MAE import create_model, run_sequential_ttt
-
-# Load pre-trained model
-model = create_model('mae_vit_base_patch16', pretrained=True)
-
-# Load your ultrasonic wavefield data
-# wavefield_sequence: Sequential snapshots from ultrasonic inspection
-# labels: Ground truth defect/non-defect labels
-
-# Apply Sequential TTT-MAE
-adapted_model, results = run_sequential_ttt(
-    model=model,
-    test_data=wavefield_sequence,
-    batch_size=32,
-    adaptation_steps=32,
-    learning_rate=1e-3
-)
-
-# Make predictions with adapted model
-predictions = adapted_model(new_wavefield_data)
-```
-
-### Advanced Usage
-
-**Custom Domain Shift Scenarios:**
-```python
-from engine_TTT_wavefield_LN_MAE_vis import TTTEngine
-
-# Initialize TTT engine
-ttt_engine = TTTEngine(
-    model=model,
-    auxiliary_task='mae',
-    mask_ratio=0.75,
-    temporal_grouping=True
-)
-
-# Adapt to specific domain shift
-ttt_engine.adapt_to_domain(
-    source_data=training_data,
-    target_data=test_data,
-    domain_type='transducer_position'  # Type-A, Type-B, or Type-C
-)
-```
 
 ## 📄 License
 
 This project is released under the [Attribution-NonCommercial 4.0 International] license, making it available for research use.
 
-## 🤝 Future topics
-
-If you want to contribute to this project, please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Areas for Future extensions
-- Extended domain shift scenarios
-- Additional TTT methods comparison  
-- Improved visualization tools
-- Performance optimizations
-- Documentation improvements
-
 ## 🙏 Acknowledgments
 
-- Ultrasonic wavefield imaging source dataset contributors [TBA]
+- Ultrasonic wavefield imaging source dataset contributors [USimagAIST]
 - ImageNet pre-trained MAE models from Facebook Research
 - PyTorch and timm library maintainers
 - Open-source community for development tools and frameworks
