@@ -245,15 +245,6 @@ def main(args):
     args.bn_update_mode = 'adaptive'  # Adaptive momentum
     args.preserve_bn_across_samples = True  # Keep BN across samples
     
-
-    # dataset_train = tt_image_folder.ExtendedImageFolder(data_path, transform=transform_train, minimizer=None, 
-    #                                                     batch_size=args.batch_size, steps_per_example=args.steps_per_example * args.accum_iter, 
-    #                                                     single_crop=args.single_crop, start_index=max_known_file+1)
-
-    # dataset_val = tt_image_folder.ExtendedImageFolder(data_path, transform=transform_val, 
-    #                                                     batch_size=1, minimizer=None, 
-    #                                                     single_crop=args.single_crop, start_index=max_known_file+1)
-
     num_classes = 2
     classes = 2
 
@@ -265,45 +256,27 @@ def main(args):
     USIpipeNGlabel = USIpipeNGlabel.flatten().long()
     USIpipeNGidx = USIpipeNGidx.flatten().long()
     
-    
-    # USIlab = USIpipeNGlabel
-    
     ds_val = CustomTensorDataset(USIplateNG, USIplateNGlabel, transform=transform_val)    
-    
     ds_val = CustomTensorDataset(USIpipeNG, USIpipeNGlabel, transform=transform_val)
     
-    
-    # sampID = 2
-    
-    # for sampID in USIpipeNGidx.unique():
-    
     for sampID in USIpipeNGidx.unique():    
-    # for sampID in [1]:
-        
         sampID = sampID.item()
         print(f'Processing sample: {sampID}')
-        
         ds_val = CustomTensorDataset(USIpipeNG[USIpipeNGidx==sampID], USIpipeNGlabel[USIpipeNGidx==sampID], transform=transform_val)
         
         args.sampID = int(sampID)
         # Set num_workers=0 to avoid multiprocessing issues
         dataset_val = torch.utils.data.DataLoader(ds_val, 32, shuffle=False, num_workers=0)
-
-        # Set num_workers=0 to avoid multiprocessing issues
         
         # define the model
         # model, optimizer, scalar = load_combined_model(args, num_classes)
             
         base_model, base_optimizer, base_scalar = load_combined_model(args, num_classes)
-            
         print("Model = %s" % str(base_model))
-
         eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
         
         args.lr = args.blr * eff_batch_size / 256
         args.runMAE = False
-
-
         wandb_config = vars(args)
         base_lr = (args.lr * 256 / eff_batch_size)
         wandb_config['base_lr'] = base_lr
@@ -314,14 +287,6 @@ def main(args):
         print("effective batch size: %d" % eff_batch_size)
         
         start_time = time.time()
-        # test_stats = train_on_test(
-        #     model, optimizer, scalar, ds_val, ds_val,
-        #     device,
-        #     log_writer=None,
-        #     args=args,
-        #     num_classes=num_classes,
-        #     iter_start=max_known_file+1
-        # )
 
         # Call the modified training function
         # train_on_test_with_online_bn_update(base_model, base_optimizer, base_scalar, 
